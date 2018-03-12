@@ -4,51 +4,66 @@
             <slot></slot>
         </div>
         <div class="dots">
-
         </div>
     </div>
 </template>
 <script>
-import BScroll from 'better-scroll'
-export default {
-    props: {
-        loop: {
-            type: Boolean,
-            default: true
-        },
-        autoPlay: {
-            type: Boolean,
-            default: true
-        },
-        interval: {
-            type: Number,
-            default: 4000
-        }
-    },
-    //mounted与created区别：mounted是在html模版生成之后调用，此时可以绑定dom节点；created是在html模版生成之前调用
-    mounted() {
-        setTimeout(() => {
-            this._setSliderWidth()
-            this._initSlider()
-        }, 20)
-    },
-    methods: {
-        _setSliderWidth() {
-            this.children = this.$refs.sliderGroup.children
-
-            let width = 0
-            let sliderWidth = this.$refs.slider.clientWidth
-            for (let i = 0; i < this.children.length; i++) {
-                let child = this.children[i]
-                addClass()
+    import BScroll from 'better-scroll'
+    import {
+        addClass
+    } from 'common/js/dom'
+    export default {
+        props: {
+            loop: {
+                type: Boolean,
+                default: true
+            },
+            autoPlay: {
+                type: Boolean,
+                default: true
+            },
+            interval: {
+                type: Number,
+                default: 4000
             }
         },
-        _initSlider() {
+        //mounted与created区别：mounted是在html模版生成之后调用，此时可以绑定dom节点；created是在html模版生成之前调用
+        mounted() {
+            setTimeout(() => {
+                this._setSliderWidth()
+                this._initSlider()
+            }, 20)
+        },
+        methods: {
+            _setSliderWidth(isResize) {
+                this.children = this.$refs.sliderGroup.children
+                let width = 0
+                let sliderWidth = this.$refs.slider.clientWidth
+                for (let i = 0; i < this.children.length; i++) {
+                    let child = this.children[i]
+                    addClass(child, 'slider-item')
+                    child.style.width = sliderWidth + 'px'
+                    width += sliderWidth
+                }
+                if (this.loop && !isResize) {
+                    width += 2 * sliderWidth
+                }
+                this.$refs.sliderGroup.style.width = width + 'px'
+            },
+            _initSlider() {
+                this.slider = new BScroll(this.$refs.slider, {
+                    scrollX: true,//横向滚动
+                    startY: false,//纵向滚动
+                    momentum: false,//
+                    snap: true,
+                    snapLoop: this.loop,
+                    snapThreshold: 0.3,
+                    snapSpeed: 400
+                })
 
+            }
         }
-
     }
-}
 </script>
 <style scoped lang="stylus" rel="stylesheet/stylus">
   @import "~common/stylus/variable"

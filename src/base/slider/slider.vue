@@ -4,66 +4,130 @@
             <slot></slot>
         </div>
         <div class="dots">
+            <span class="dot" :class="{active: currentPageIndex === index}" v-for="(item, index) in dots"></span>
         </div>
     </div>
 </template>
 <script>
-    import BScroll from 'better-scroll'
-    import {
-        addClass
-    } from 'common/js/dom'
-    export default {
-        props: {
-            loop: {
-                type: Boolean,
-                default: true
-            },
-            autoPlay: {
-                type: Boolean,
-                default: true
-            },
-            interval: {
-                type: Number,
-                default: 4000
-            }
-        },
-        //mounted与created区别：mounted是在html模版生成之后调用，此时可以绑定dom节点；created是在html模版生成之前调用
-        mounted() {
-            setTimeout(() => {
-                this._setSliderWidth()
-                this._initSlider()
-            }, 20)
-        },
-        methods: {
-            _setSliderWidth(isResize) {
-                this.children = this.$refs.sliderGroup.children
-                let width = 0
-                let sliderWidth = this.$refs.slider.clientWidth
-                for (let i = 0; i < this.children.length; i++) {
-                    let child = this.children[i]
-                    addClass(child, 'slider-item')
-                    child.style.width = sliderWidth + 'px'
-                    width += sliderWidth
-                }
-                if (this.loop && !isResize) {
-                    width += 2 * sliderWidth
-                }
-                this.$refs.sliderGroup.style.width = width + 'px'
-            },
-            _initSlider() {
-                this.slider = new BScroll(this.$refs.slider, {
-                    scrollX: true,//横向滚动
-                    startY: false,//纵向滚动
-                    momentum: false,//
-                    snap: true,
-                    snapLoop: this.loop,
-                    snapThreshold: 0.3,
-                    snapSpeed: 400
-                })
-
-            }
+import BScroll from 'better-scroll'
+import { addClass } from 'common/js/dom'
+export default {
+    name: 'slider',
+    data() {
+        return {
+            dots: [],
+            currentPageIndex: 0
         }
+    },
+    props: {
+        loop: {
+            type: Boolean,
+            default: true
+        },
+        autoPlay: {
+            type: Boolean,
+            default: true
+        },
+        interval: {
+            type: Number,
+            default: 4000
+        }
+    },
+    //mounted与created区别：mounted是在html模版生成之后调用，此时可以绑定dom节点；created是在html模版生成之前调用
+    mounted() {
+        setTimeout(() => {
+            this._setSliderWidth()
+            this._initDots()
+            this._initSlider()
+
+            if (this.autoPlay) {
+                console.log("autoPlay")
+                this._Play()
+            }
+        }, 20)
+
+        window.addEventListener('resize', () => {
+            console.log("监听window尺寸改变")
+            if (!this.slider) {
+                return
+            }
+            this._setSliderWidth(true)
+            this.slider.refresh()
+        })
+    },
+    activated() {
+        if (this.autoPlay) {
+            this._Play()
+        }
+    }, deactivated() {
+        clearTimeout(this.timer)
+    },
+    beforeDestroy() {
+        clearTimeout(this.timer)
+    },
+    methods: {
+        _setSliderWidth(isResize) {
+            this.children = this.$refs.sliderGroup.children
+            console.log("this.children.length" + this.children.length)
+            let width = 0
+            let sliderWidth = this.$refs.slider.clientWidth
+            for (let i = 0; i < this.children.length; i++) {
+                let child = this.children[i]
+                addClass(child, 'slider-item')
+                child.style.width = sliderWidth + 'px'
+                width += sliderWidth
+            }
+            if (this.loop && !isResize) {
+                width += 2 * sliderWidth
+            }
+            this.$refs.sliderGroup.style.width = width + 'px'
+        },
+        _initDots() {
+            this.dots = new Array(this.children.length)
+        },
+        _initSlider() {
+            this.slider = new BScroll(this.$refs.slider, {
+                scrollX: true,
+                scrollY: false,
+                momentum: false,
+                snap: true,
+                snapLoop: this.loop,
+                snapThreshold: 0.3,
+                snapSpeed: 400
+            })
+
+            this.slider.on('scrollEnd', () => {
+                let PageIndex = this.slider.getCurrentPage().pageX
+                console.log("轮播完成一次：" + PageIndex)
+                if (this.loop) {
+                    PageIndex -= 1
+                }
+                this.currentPageIndex = PageIndex
+                if (this.autoPlay) {
+                    this._Play()
+                }
+            })
+            this.slider.on('beforeScrollStart', () => {
+                if (this.autoPlay) {
+                    clearTimeout(this.timer)
+                }
+            })
+        },
+        _Play() {
+            let pageIndex = this.currentPageIndex + 1
+            console.log("自动播放：" + pageIndex)
+            if (this.loop) {
+                pageIndex += 1
+            }
+            this.timer = setTimeout(() => {
+                this.slider.goToPage(pageIndex, 0, 400)
+            }, this.interval)
+        }
+    },
+    destoryed() {
+        clearTimeout(this.timer)
     }
+}
 </script>
 <style scoped lang="stylus" rel="stylesheet/stylus">
   @import "~common/stylus/variable"
